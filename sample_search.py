@@ -9,96 +9,115 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 import time
 import os    
 import pandas as pd
-from PIL import Image
+import datetime as dt
+import calendar as cl
+def iphone6_tweets_per_month(m):
+    m-=1
+    year = m//12+2017
+    # year_0= (m-1)//12 + 2017
+    month = m%12+1
+    # month_0=(m-1)%12
+    m_day = cl.monthrange(year,month)[1]
+    time_start=time.time()
 
-time_start=time.time()
+    # using export command to get username,id,unq and password
+    eml = os.environ.get('eml')
+    usr=os.environ.get('usr')
+    psw=os.environ.get('psw')
+    unq=os.environ.get('unq')
 
-# using export command to get username,id,unq and password
-eml = os.environ.get('eml')
-usr=os.environ.get('usr')
-psw=os.environ.get('psw')
-unq=os.environ.get('unq')
-#print(eml)
+    chrome_options = ChromeOptions()
+    chrome_options.add_experimental_option("detach", True)
+    # chrome_options.add_argument("--headless=new")
+    service = Service(executable_path="chromedriver")
+    driver = webdriver.Chrome(service=service,options=chrome_options)
 
-chrome_options = ChromeOptions()
-#chrome_options.add_experimental_option("detach", True)
-chrome_options.add_argument("--headless=new")
-service = Service(executable_path="chromedriver")
-driver = webdriver.Chrome(service=service,options=chrome_options)
-
-driver.get('https://twitter.com/') #sometimes another page shows up requiring different login#betterENG
-#driver.maximize_window()
-print('opened twitter.com')
-driver.implicitly_wait(15)
-login = driver.find_element(By.CSS_SELECTOR, 'a[data-testid="login"]')
-login.click()
-time.sleep(2) # for popup to load cause it can be unreliable
-popup=driver.find_element(By.XPATH,"//div[@aria-labelledby='modal-header' and @role='dialog' and contains(.,'Sign in')]")
-username = driver.find_element(By.CSS_SELECTOR, "input[autocomplete='username']")
-username.clear()
-username.send_keys(eml)
-username.send_keys(Keys.ENTER) #change this selecting next button #betterENG
-time.sleep(5) #for selenium to update what popup is
-#print(popup.get_attribute('innerHTML'))
-if 'There was unusual' in popup.text:
-    input=driver.find_element(By.CSS_SELECTOR,'input[name="text"]')#betterENG
-    input.send_keys(usr)
-    input.send_keys(Keys.ENTER)
-password=driver.find_element(By.CSS_SELECTOR,'input[name="password"]')
-password.send_keys(psw)
-driver.find_element(By.CSS_SELECTOR,'div[role="button"][data-testid="LoginForm_Login_Button"]').click()
-time.sleep(5)
-print('Logged into twitter')
-driver.save_screenshot('/home/green/bucket/afterLogin.png')
-
-if  len(driver.find_elements(By.XPATH,"//div[@aria-labelledby='modal-header' and @role='dialog' and contains(.,'Sign in')]"))>0:
-    input = popup.find_element(By.TAG_NAME,'input')
-    input.send_keys(unq)
-    driver.save_screenshot('/home/green/bucket/see.png')
-    input.send_keys(Keys.ENTER)
-explore=driver.find_element(By.CSS_SELECTOR,'a[href="/explore"][aria-label="Search and explore"]')
-#print(driver.find_element(By.TAG_NAME,'body').get_attribute('innerHTML'))
-x=driver.execute_script("return document.body.scrollWidth")
-print(x)
-#width of the ec2 instance is 700px while height is 400px
-time.sleep(3)
-
-if explore.size!=0:
-    print(explore.size,explore.is_displayed())
-    #explore = explore.find_element(By.TAG_NAME,'div')
-    explore.click()
-    input = input = driver.find_element(By.CSS_SELECTOR,'input[aria-label="Search query"]')
-else:
-    input = driver.find_element(By.CSS_SELECTOR,'input[aria-label="Search query"]')
-input.send_keys('"iPhone 6" (bend) (bent) (lang:en) until:2015-12-31 since:2014-01-01')
-input.send_keys(Keys.ENTER)
-latest = driver.find_element(By.CSS_SELECTOR,'a[href^="/search?q"][role="tab"][href$="f=live"]')
-latest.click()
-repo=[]
-y=driver.execute_script("return document.body.scrollHeight")
-print(y)
-for j in range(3):
-    # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    driver.execute_script("window.scrollTo(0, {});".format(j*y))
+    driver.get('https://twitter.com/') #sometimes another page shows up requiring different login#betterENG
+    print('opened twitter.com')
+    driver.implicitly_wait(15)
+    login = driver.find_element(By.XPATH, '//span[contains(text(),"Log in")]')
+    login.click()
+    time.sleep(2) # for popup to load cause it can be unreliable
+    popup=driver.find_element(By.XPATH,"//div[@aria-labelledby='modal-header' and @role='dialog' and contains(.,'Sign in')]")
+    username = driver.find_element(By.CSS_SELECTOR, "input[autocomplete='username']")
+    username.clear()
+    username.send_keys(eml)
+    username.send_keys(Keys.ENTER) #change this selecting next button #betterENG
+    time.sleep(3) #for selenium to update what popup is
+    #print(popup.get_attribute('innerHTML'))
+    if 'There was unusual' in popup.text:
+        input=driver.find_element(By.CSS_SELECTOR,'input[name="text"]')#betterENG
+        input.send_keys(usr)
+        input.send_keys(Keys.ENTER)
+    password=driver.find_element(By.CSS_SELECTOR,'input[name="password"]')
+    password.send_keys(psw)
+    driver.find_element(By.CSS_SELECTOR,'div[role="button"][data-testid="LoginForm_Login_Button"]').click()
     time.sleep(3)
-    tweet_elements=driver.find_elements(By.TAG_NAME,'article')
-    for i in range(len(tweet_elements)):
-        text=''
-        text_elm=tweet_elements[i].find_element(By.CSS_SELECTOR,'div[data-testid="tweetText"]')
-        for j in range(len(text_elm.find_elements(By.TAG_NAME,'span'))):
-            text += text_elm.find_elements(By.TAG_NAME,'span')[j].text 
-        # print(text)
-        row = tweet_elements[i].text.split('\n')[:4]
-        # print(row)
-        row.remove('·') # maybe change this to remove third element#betterENG
-        # print(row)
-        row.append(text)    
-        repo.append(row)
-tweets_database=pd.DataFrame(repo,columns=['name','id','date','text'])
-print(tweets_database)#maybe figure out how to add engagement values to this dataframe
-time_end=time.time()
-print(time_end-time_start)
-time.sleep(5)
+    print('Logged into twitter')
+    # driver.save_screenshot('/home/green/bucket/afterLogin.png')
+
+    if  len(driver.find_elements(By.XPATH,"//div[@aria-labelledby='modal-header' and @role='dialog' and contains(.,'Sign in')]"))>0:
+        input = popup.find_element(By.TAG_NAME,'input')
+        input.send_keys(unq)
+        # driver.save_screenshot('/home/green/bucket/see.png')
+        input.send_keys(Keys.ENTER)
+    explore=driver.find_element(By.CSS_SELECTOR,'a[href="/explore"][aria-label="Search and explore"]')
+    #width of the ec2 instance is 700px while height is 400px
+    if explore.size!=0:
+        # print(explore.size,explore.is_displayed())
+        explore.click()
+        input = driver.find_element(By.CSS_SELECTOR,'input[aria-label="Search query"]')
+    else:
+        input = driver.find_element(By.CSS_SELECTOR,'input[aria-label="Search query"]')
+    advanced_search=f'"iPhone 6" (bend) (bent) (lang:en) until:{year}-{month}-{m_day} since:{year}-{month}-01'
+    input.send_keys(advanced_search)
+    input.send_keys(Keys.ENTER)
+    latest = driver.find_element(By.CSS_SELECTOR,'a[href^="/search?q"][role="tab"][href$="f=live"]')
+    latest.click()
+
+    repo=[]
+    y_0=driver.execute_script("return document.body.scrollHeight")
+    count=0
+    print(advanced_search)
+    print('before loop')
+    if len(driver.find_elements(By.XPATH,f'//div[contains(.,"No results for") and contains(.,"Try searching for something else")]'))==0:
+        while True:
+            count+=1
+            driver.execute_script("window.scrollTo(0, {});".format(count*y_0))
+            time.sleep(3)
+            y_1= driver.execute_script("return document.body.scrollHeight")
+            tweet_elements=driver.find_elements(By.TAG_NAME,'article')
+            for i in range(len(tweet_elements)):
+                text=''
+                text_elm=tweet_elements[i].find_element(By.CSS_SELECTOR,'div[data-testid="tweetText"]')
+                for j in range(len(text_elm.find_elements(By.TAG_NAME,'span'))):
+                    text += text_elm.find_elements(By.TAG_NAME,'span')[j].text 
+                # print(text)
+                row = tweet_elements[i].text.split('\n')[:4]
+                # print(row)
+                row.remove('·') # maybe change this to remove third element#betterENG
+                # print(row)
+                row.append(text)
+                tw_date= dt.datetime.strptime(row[2],'%b %d, %Y')
+                # print(row,'\n',tw_date)
+                if tw_date.year !=year or tw_date.month!=month:
+                    break
+                if row not in repo:
+                    repo.append(row)
+            if tw_date.year !=year or tw_date.month!=month:
+                break
+            # print(f'{count}, {len(repo)}, {y_0}=={y_1}')
+            if y_1==y_0:
+                break
+            y_0=y_1
+    else:
+        return -1
+    tweets_database=pd.DataFrame(repo,columns=['name','id','date','text'])
+    # print(tweets_database)#maybe figure out how to add engagement values to this dataframe
+    time_end=time.time()
+    print(time_end-time_start)
+    return tweets_database
+print(iphone6_tweets_per_month(14))
 # driver.quit()
 
 #target the login button and click it
