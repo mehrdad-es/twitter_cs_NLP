@@ -27,8 +27,8 @@ def iphone6_tweets_per_month(m):
     unq=os.environ.get('unq')
 
     chrome_options = ChromeOptions()
-    chrome_options.add_experimental_option("detach", True)
-    # chrome_options.add_argument("--headless=new")
+    # chrome_options.add_experimental_option("detach", True)
+    chrome_options.add_argument("--headless=new")
     service = Service(executable_path="chromedriver")
     driver = webdriver.Chrome(service=service,options=chrome_options)
 
