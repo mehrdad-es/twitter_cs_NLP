@@ -6,5 +6,7 @@ def analyze_date_string(date_string):
     ''' 
     output = {}  
     datetime_object= dt.datetime.strptime(date_string,'%m/%d/%Y')
-    output['year'],output['month'],output['day']=datetime_object.year,datetime_object.month,datetime_object.day
-    return output
+    return datetime_object
+
+
+
