@@ -12,46 +12,61 @@ import pandas as pd
 import datetime as dt
 import calendar as cl
 import sys
-def iphone6_tweets_per_month(m):
-    m = int(m)
+from update_cron_parameter import update_cron_parameter as update_cron
+import general_tools as gt
+
+config= pd.read_csv('./config.csv',index_col=0)
+
+'''
+ADD LOOP FUNCTIONALITY 
+
+'''
+
+
+
+def get_phone_tweets(phone_model,start_date,end_date):
+    end_datetime=gt.analyze_date_string(end_date)
+    start_datetime=gt.analyze_date_string(start_date)
+    end_year,end_month,end_day=end_datetime['year'],end_datetime['month'],end_datetime['day']
+    start_year,start_month,start_day=start_datetime['year'],start_datetime['month'],start_datetime['day']
+    m = end_month-start_month
     time_start=time.time()
-    df = pd.read_csv('cron_parameters.csv',index_col=0)
-    tw_db = pd.read_csv('tweets_database.csv')
+    df = pd.read_csv(config.loc['iphone6_scan_summary'][0],index_col=0)
+    tw_db = pd.read_csv(config.loc['iphone6_tweets_repository'][0])
     # print(df.shape)
     date = dt.datetime.now().strftime('%Y %m %d | %H:%M')
     try:
-        m-=1
-        year = m//12+2017
-        # year_0= (m-1)//12 + 2017
-        month = m%12+1
-        # month_0=(m-1)%12
-        m_day = cl.monthrange(year,month)[1]
+        # m+=8
+        # year = m//12+2016
+        # # year_0= (m-1)//12 + 2017
+        # month = m%12+1
+        # # month_0=(m-1)%12
+        # m_day = cl.monthrange(year,month)[1]
 
         # using export command to get username,id,unq and password
-        eml = os.environ.get('eml')
-        usr=os.environ.get('usr')
-        psw=os.environ.get('psw')
-        unq=os.environ.get('unq')
+        eml = os.environ.get('email')
+        usr=os.environ.get('username')
+        psw=os.environ.get('password')
+        unq=os.environ.get('unexpected_twitter_login_code')
 
         chrome_options = ChromeOptions()
-        # chrome_options.add_experimental_option("detach", True)
-        chrome_options.add_argument("--headless=new")
-        service = Service(executable_path="chromedriver")
+        chrome_options.add_experimental_option("detach", True)
+        # chrome_options.add_argument("--headless=new")
+        service = Service(executable_path="./chromedriver")
         driver = webdriver.Chrome(service=service,options=chrome_options)
-
         driver.get('https://twitter.com/') #sometimes another page shows up requiring different login#betterENG
-        # print('opened twitter.com')
+        
+        print('opened twitter.com')
         driver.implicitly_wait(15)
-        login = driver.find_element(By.XPATH, '//span[contains(text(),"Log in")]')
-        login.click()
+        # login = driver.find_element(By.XPATH, '//span[contains(text(),"Log in")]')
+        # login.click()
         time.sleep(2) # for popup to load cause it can be unreliable
         popup=driver.find_element(By.XPATH,"//div[@aria-labelledby='modal-header' and @role='dialog' and contains(.,'Sign in')]")
         username = driver.find_element(By.CSS_SELECTOR, "input[autocomplete='username']")
         username.clear()
         username.send_keys(eml)
         username.send_keys(Keys.ENTER) #change this selecting next button #betterENG
-        time.sleep(3) #for selenium to update what popup is
-        #print(popup.get_attribute('innerHTML'))
+        time.sleep(2) #for selenium to update what popup is
         if 'There was unusual' in popup.text:
             input=driver.find_element(By.CSS_SELECTOR,'input[name="text"]')#betterENG
             input.send_keys(usr)
@@ -59,10 +74,9 @@ def iphone6_tweets_per_month(m):
         password=driver.find_element(By.CSS_SELECTOR,'input[name="password"]')
         password.send_keys(psw)
         driver.find_element(By.CSS_SELECTOR,'div[role="button"][data-testid="LoginForm_Login_Button"]').click()
-        time.sleep(3)
-        # print('Logged into twitter')
-        # driver.save_screenshot('/home/green/bucket/afterLogin.png')
+        time.sleep(2)
 
+        print('Logged into twitter')
         if  len(driver.find_elements(By.XPATH,"//div[@aria-labelledby='modal-header' and @role='dialog' and contains(.,'Sign in')]"))>0:
             input = popup.find_element(By.TAG_NAME,'input')
             input.send_keys(unq)
@@ -76,15 +90,15 @@ def iphone6_tweets_per_month(m):
             input = driver.find_element(By.CSS_SELECTOR,'input[aria-label="Search query"]')
         else:
             input = driver.find_element(By.CSS_SELECTOR,'input[aria-label="Search query"]')
-        advanced_search=f'"iPhone 6" (bend) (bent) (lang:en) until:{year}-{month}-{m_day} since:{year}-{month}-01'
+        advanced_search=f'"{phone_model}" (lang:en) until:{end_year}-{end_month}-{end_day} since:{start_year}-{start_month}-{start_day}'
         input.send_keys(advanced_search)
         input.send_keys(Keys.ENTER)
         latest = driver.find_element(By.CSS_SELECTOR,'a[href^="/search?q"][role="tab"][href$="f=live"]')
         latest.click()
-
         repo=[]
         y_0=driver.execute_script("return document.body.scrollHeight")
         count=0
+
         # print(advanced_search)
         # print('before loop')
         if_no_articles=bool(len(driver.find_elements(By.XPATH,f'//div[contains(.,"No results for") and contains(.,"Try searching for something else")]')))
@@ -102,26 +116,29 @@ def iphone6_tweets_per_month(m):
                         text += text_elm.find_elements(By.TAG_NAME,'span')[j].text 
                     # print(text)
                     row = tweet_elements[i].text.split('\n')[:4]
+                    print(row)
+                    if '·' not in row:
+                        continue
+                    else:
+                        row.remove('·') # maybe change this to remove third element#betterENG
                     # print(row)
-                    row.remove('·') # maybe change this to remove third element#betterENG
-                    # print(row)
-                    row.insert(0,m+1)
-                    row.append(text)
-                    tw_date= dt.datetime.strptime(row[3],'%b %d, %Y')
+                        tw_date= dt.datetime.strptime(row[1],'%b %d, %Y')
+                        row.insert(0,tw_date.month+1)
+                        row.append(text)
                     # print(row,'\n',tw_date)
-                    if tw_date.year !=year or tw_date.month!=month:
-                        break
-                    if row not in repo:
-                        repo.append(row)
-                if tw_date.year !=year or tw_date.month!=month:
-                    break
+                    # if tw_date.year !=year or tw_date.month!=month:
+                    #     break
+                        if row not in repo:
+                            repo.append(row)
+                # if tw_date.year !=year or tw_date.month!=month:
+                #     break
                 # print(f'{count}, {len(repo)}, {y_0}=={y_1}')
                 if y_1==y_0:
                     break
                 y_0=y_1
         else:
-            df.loc[m+1]=['success/no results',date,time.time()-time_start,'None']
-            df.to_csv('cron_parameters.csv')            
+            df.loc[start_month+1]=['success/no results',date,time.time()-time_start,'None']
+            df.to_csv(config.loc['iphone6_scan_summary'][0])            
             return -1
         repo_df=pd.DataFrame(repo,index=range(tw_db.shape[0],tw_db.shape[0]+len(repo)),columns=['month','name','id','date','text'])
         # print(repo_df,'\n')
@@ -129,19 +146,24 @@ def iphone6_tweets_per_month(m):
         # print('\n',tw_db)
         tweets_database=tw_db.set_index('month')
         # print('\n\n',tweets_database)
-        tweets_database.to_csv('tweets_database.csv')
+        tweets_database.to_csv(config.loc['iphone6_tweets_repository'][0])
         # print(tweets_database)#maybe figure out how to add engagement values to this dataframe
         time_end=time.time()
         process_runtime=time_end-time_start
         df.loc[m+1]= ['success',date,process_runtime,'None']
-        df.to_csv('cron_parameters.csv')
+        df.to_csv(config.loc['iphone6_scan_summary'][0])
         # print(time_end-time_start)
     except Exception as error:
-        df.loc[m+1]=['failure',date,time.time()-time_start,error]
-        df.to_csv('cron_parameters.csv')
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        # print(exc_type, fname, exc_tb.tb_lineno)
+        df.loc[m+1]=['failure',date,time.time()-time_start,'line '+str(exc_tb.tb_lineno)+' | '+str(error)]
+        df.to_csv(config.loc['iphone6_scan_summary'][0])
 
-if __name__=='__main__':
-    iphone6_tweets_per_month(sys.argv[1])
+get_phone_tweets('iphone 6',config.loc['iphone6_tweets_start_date'][0],config.loc['iphone6_tweets_end_date'][0])
+
+# if __name__=='__main__':
+#     get_phone_tweets(sys.argv[1],sys.argv[2],sys.argv[3])
 
 # print(iphone6_tweets_per_month(14))
 # driver.quit()
