@@ -15,4 +15,6 @@ This repository is to test how good NLP classifiers for doing customer service o
 5. ML model development
 
 ## TODO
-6. Model performance monitoring
+1. Model performance monitoring
+2. Offline Feature store (S3)
+3. Docker containerization 
