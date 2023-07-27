@@ -10,7 +10,7 @@ This repository is to test how good NLP classifiers for doing customer service o
 ## Project Steps
 1. Scrape Twitter (explain why bucket files only contains headers)
 2. ETL
-3. Feature Store(Feature Engineering)
+3. Feature Store(Feature Engineering) (with chatgpt and openai embeddings)
 4. Data Quality Monitoring
 5. ML model development
 
