@@ -1,4 +1,4 @@
-# test-twitter-customer_service-NLP
+# twitter-customer_service-NLP
 
 This repository is to test how good NLP classifiers for doing customer service on twitter could be.
 
