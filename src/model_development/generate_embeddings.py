@@ -7,7 +7,7 @@ import scipy
 import string
 import contractions
 import unicodedata
-import general_tools as gt
+import utils.general_tools as gt
 
 config = pd.read_csv('../bucket/config/config.csv',index_col=0)
 
