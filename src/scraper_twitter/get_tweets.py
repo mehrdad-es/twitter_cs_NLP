@@ -51,7 +51,10 @@ def login_to_twitter(driver,eml,usr,psw,unq):
     # login = driver.find_element(By.XPATH, '//span[contains(text(),"Log in")]')
     # login.click()
     time.sleep(2) # for popup to load cause it can be unreliable
-    popup=driver.find_element(By.XPATH,"//div[@aria-labelledby='modal-header' and @role='dialog' and contains(.,'Sign in')]")
+    main=driver.find_element(By.XPATH,"//main[@role='main']")
+    sign_in=main.find_element(By.XPATH,'./div/div/div[1]/div[1]/div/div[3]/div[5]/a/div')
+    sign_in.click()
+    popup=driver.find_element(By.XPATH,"//div[@aria-labelledby='modal-header' and @role='dialog']")
     username = driver.find_element(By.CSS_SELECTOR, "input[autocomplete='username']")
     username.clear()
     username.send_keys(eml)
