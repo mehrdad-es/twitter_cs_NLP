@@ -14,5 +14,5 @@ In ./notebooks you will find the steps to recreate the models that based on the 
 6. ML model deployment
 ## Next Steps
 - [ ] Model performance monitoring
-- [ ] Docker containerization
+- [x] Docker containerization
 - [ ] Clustering Experimentation
