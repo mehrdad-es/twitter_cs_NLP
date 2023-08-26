@@ -1,4 +1,4 @@
-# Twitter Customer Service NLP
+# Twitter Product Feedback NLP
 ## Intro
 Product users often talk about their experience on twitter (perhaps more than any other platform). However, comprehending the large number of tweets and sifting through irrelevant product mentions (posts which are not product feedback) is very difficult to be done with a rule-based approach. Hence, NLP was used to simplify understanding product feedback on Twitter.
 ## Getting started
