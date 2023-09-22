@@ -6,7 +6,7 @@ In ./notebooks you will find the steps to recreate the models that based on the 
 * Make sure to change "data bucket template" folder name to just "bucket" before testing.
 * To view the python source code visit ./src
 ## Project Steps
-1. Scrape Twitter
+1. Get Tweets
 2. ETL
 3. Feature Store (feature engineering)
 4. Data Quality Monitoring
