@@ -15,4 +15,4 @@ In ./notebooks you will find the steps to recreate the models that based on the 
 ## Next Steps
 - [ ] Model performance monitoring
 - [x] Docker containerization
-- [ ] Clustering Experimentation
+- [x] Clustering Experimentation
