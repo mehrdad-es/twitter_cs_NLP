@@ -12,6 +12,8 @@ import pandas as pd
 import datetime as dt
 import calendar as cl
 import utils.general_tools as gt
+import utils.setConfig as setConfig
+import re
 
 def initiate_chrome(use_existing_profile=False,headless=False):
     '''
@@ -26,9 +28,10 @@ def initiate_chrome(use_existing_profile=False,headless=False):
     if use_existing_profile:
         chrome_options.add_argument("--remote-debugging-port=9014")#opens created profile not to login again
         # chrome_options.add_experimental_option("debuggerAddress","localhost:9014") # alternative way to decalre port for created profile
-        chrome_options.add_argument('--user-data-dir=../tw_profile')#better change to absolute path if encountered errors # this line opens your profile which is already logged into twitter
+        cwd=os.getcwd()
+        chrome_options.add_argument(f'--user-data-dir={cwd}/tw_profile')#better change to absolute path if encountered errors # this line opens your profile which is already logged into twitter
     chrome_options.add_experimental_option("detach", True) # to sometimes help with chrome tab stay open 
-    service = Service(executable_path="../chromedriver")
+    service = Service(executable_path="../../chromedriver")
     driver=webdriver.Chrome(service=service,options=chrome_options)
     return driver
 
@@ -70,10 +73,12 @@ def login_to_twitter(driver,eml,usr,psw,unq):
     time.sleep(2)
     # print('Logged into twitter')
 
-def scrape_twitter(driver,date,exact_search_term='iphone 6',threshold=20):
+def find_tweets(driver,date,exact_search_term='iphone 6',threshold=20,num_days=1,
+        minRetweets=1):
     '''
-    input: takes in driver instance, date to get tweets from,search term, and threshold for 
-    number of tweets to get.
+    input: takes in driver instance, date to get tweets from,search term, number of days
+    ahead it can search for tweets and threshold for number of tweets to get.
+    minRetweets is a parameter used to fine-tune the search.
     Note that date should be in numerical for all month/day/year format.
 
     output: gets the tweets and stores in main repository for the tweets, the success/no-results/failure
@@ -83,13 +88,13 @@ def scrape_twitter(driver,date,exact_search_term='iphone 6',threshold=20):
 
     # variable initialization
     months=['Jan ','Feb ','Mar ','Apr ','May ','Jun ','Jul ','Aug ','Sep ','Oct ','Nov ','Dec ']
-    config= pd.read_csv('../bucket/config/config.csv',index_col=0)
+    config= pd.read_csv(f'../../bucket/config/{setConfig.select_data_folder()}',index_col=0)
     phone_model,date=exact_search_term,gt.analyze_date_string(date)
-    day_after = date+dt.timedelta(days=1)
+    day_after = date+dt.timedelta(days=num_days)
     year,month,day=date.year,date.month,date.day
     day_after_year,day_after_month,day_after_day=day_after.year,day_after.month,day_after.day
-    scan_summary = pd.read_csv(config.loc['iphone6_scan_summary'][0])
-    all_tweets_repo = pd.read_csv(config.loc['iphone6_tweets_repository'][0])
+    scan_summary = pd.read_csv(config.loc['scan_summary'][0])
+    all_tweets_repo = pd.read_csv(config.loc['tweets_repository'][0])
     today = dt.datetime.now().strftime('%Y %m %d | %H:%M')
     repo=[]
     time_start=time.time()
@@ -106,7 +111,7 @@ def scrape_twitter(driver,date,exact_search_term='iphone 6',threshold=20):
             input = driver.find_element(By.CSS_SELECTOR,'input[aria-label="Search query"]')
         else:
             input = driver.find_element(By.CSS_SELECTOR,'input[aria-label="Search query"]')
-        advanced_search=f'"{phone_model}" (lang:en) until:{day_after_year}-{day_after_month}-{day_after_day} since:{year}-{month}-{day}'
+        advanced_search=f'"{phone_model}" min_retweets:{minRetweets} (lang:en) until:{day_after_year}-{day_after_month}-{day_after_day} since:{year}-{month}-{day}'
         input.send_keys(advanced_search)
         input.send_keys(Keys.ENTER)
         latest = driver.find_element(By.CSS_SELECTOR,'a[href^="/search?q"][role="tab"][href$="f=live"]')
@@ -117,6 +122,7 @@ def scrape_twitter(driver,date,exact_search_term='iphone 6',threshold=20):
         if_no_articles=bool(len(driver.find_elements(By.XPATH,f'//div[contains(.,"No results for") and contains(.,"Try searching for something else")]')))
         if if_no_articles==False:
             while count2<=threshold:
+                print('{}% has been done'.format(round(count2/threshold,2)*100))
                 tweet_elements=driver.find_elements(By.TAG_NAME,'article')
                 for i in range(len(tweet_elements)):
                     if tweet_elements[i].text=='This Tweet is unavailable.':
@@ -128,13 +134,15 @@ def scrape_twitter(driver,date,exact_search_term='iphone 6',threshold=20):
                     else:
                         elements.remove('·')
                         for k in range(1,len(elements)):
-                                if elements[k][:4] in months:
+                                if elements[k][:4] in months or \
+                                    bool(re.compile('\A[0-2][0-9]h').match(elements[k])):
                                     date_index= k
                                     break
                         for j in range(date_index+1,len(elements)):
                             text+=elements[j]    
                         row = elements[:date_index+1]
-                        tw_date= dt.datetime.strptime(row[date_index],'%b %d, %Y')
+                        row[date_index]=tweet_elements[i].find_element(By.TAG_NAME,'time').get_attribute('datetime')[:10]
+                        tw_date= dt.datetime.strptime(row[date_index],'%Y-%m-%d').strftime("%b %d, %Y")
                         if len(row)==2:
                             row.insert(0,'No Name')    
                         row.append(text)
@@ -148,6 +156,7 @@ def scrape_twitter(driver,date,exact_search_term='iphone 6',threshold=20):
                 time.sleep(3)
                 if_pls_retry=bool(len(driver.find_elements(By.XPATH,f'//div[contains(.,"Something went wrong. Try reloading") and contains(.,"Retry")]')))
                 if if_pls_retry:
+                    time.sleep(900)
                     driver.find_element(By.XPATH,f'//div[@role="button" and contains(.,"Retry")]').click()
                 y_1= driver.execute_script("return document.body.scrollHeight")
                 if y_1==y_0:
@@ -156,18 +165,18 @@ def scrape_twitter(driver,date,exact_search_term='iphone 6',threshold=20):
                 y_0=y_1      
         else:
             scan_summary.loc[scan_summary.shape[0]]=['success/no results',today,time.time()-time_start,'n/a']
-            scan_summary.to_csv(config.loc['iphone6_scan_summary'][0])            
+            scan_summary.to_csv(config.loc['scan_summary'][0])            
             # print('break')
         repo_df=pd.DataFrame(repo,columns=['name','id','date','text'])
         all_tweets_repo = pd.concat([all_tweets_repo,repo_df],ignore_index=True)
-        all_tweets_repo.to_csv(config.loc['iphone6_tweets_repository'][0],index=False)
+        all_tweets_repo.to_csv(config.loc['tweets_repository'][0],index=False)
         time_end=time.time()
         process_runtime=time_end-time_start
         scan_summary.loc[scan_summary.shape[0]]= ['success',today,process_runtime,'n/a']
-        scan_summary.to_csv(config.loc['iphone6_scan_summary'][0],index=False)
+        scan_summary.to_csv(config.loc['scan_summary'][0],index=False)
     except Exception as error:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         # print(exc_type, fname, exc_tb.tb_lineno)
         scan_summary.loc[scan_summary.shape[0]]=['failure',date,time.time()-time_start,'line '+str(exc_tb.tb_lineno)+' | '+str(error)]
-        scan_summary.to_csv(config.loc['iphone6_scan_summary'][0])
+        scan_summary.to_csv(config.loc['scan_summary'][0])

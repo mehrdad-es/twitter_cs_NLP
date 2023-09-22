@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(1,'../src/')
-import scraper_twitter.get_tweets as get_tweets
+import browse_twitter.get_tweets as get_tweets
 import pytest
 import os
 
@@ -15,4 +15,4 @@ def test_get_tweets():
     psw=os.environ.get('password')
     unq=os.environ.get('unexpected_twitter_login_code')
     get_tweets.login_to_twitter(driver,eml,usr,psw,unq)
-    get_tweets.scrape_twitter(driver,'3/3/2017','iphone 6',threshold=2)
+    get_tweets.find_tweets(driver,'3/3/2017','iphone 6',threshold=2)
