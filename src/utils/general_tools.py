@@ -3,6 +3,7 @@ import pandas as pd
 import string
 import contractions
 import unicodedata
+import os
 
 def analyze_date_string(date_string):
     '''
@@ -26,4 +27,10 @@ def make_dataframe_empty(df):
     output: empty dataframe just with the columns
     '''
     return df.head(0)
+
+def make_data_directory_empty(main_path):
+    for subfolder in os.listdir(path=main_path):
+        for file in os.listdir(path=main_path+subfolder):
+            make_dataframe_empty(pd.read_csv(main_path+subfolder+\
+            '/'+file,index_col=0)).to_csv(main_path+subfolder+'/'+file)
 
