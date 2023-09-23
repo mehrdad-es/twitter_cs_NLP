@@ -7,14 +7,15 @@ import scipy
 import string
 import contractions
 import unicodedata
+from tqdm import tqdm
 import utils.general_tools as gt
-
-config = pd.read_csv('../bucket/config/config.csv',index_col=0)
+import utils.setConfig as sc
+config = pd.read_csv(f'../../bucket/config/{sc.select_data_folder()}',index_col=0)
 
 def gen_emb(openai_api_bearer_token,\
             embeddings_path,\
             start_from_scratch=True,\
-            dataset_path=config.loc['iphone6_data_post_etl_and_featureEng'][0]):
+            dataset_path=config.loc['data_postETL_and_featureEng'][0]):
     '''
     input: openai bearer token, embeddings path, dataset path, and boolean to 
     to see if the embeddings should be appended to or refilled from scratch.
@@ -28,7 +29,7 @@ def gen_emb(openai_api_bearer_token,\
     embeddings=pd.read_csv(embeddings_path,index_col=0)
     if start_from_scratch:
         embeddings=gt.make_dataframe_empty(embeddings)
-    for i in range(embeddings.shape[0],dataset.shape[0]):
+    for i in tqdm(range(embeddings.shape[0],dataset.shape[0])):
         start = time.time()
         term = str(list(dataset.loc[i])) # giving the list with its brackets in string format found to make the most sense
         # print(i, term)
@@ -45,11 +46,11 @@ def gen_emb(openai_api_bearer_token,\
                 embeddings_path)
     pd.DataFrame(embeddings).to_csv(\
             embeddings_path)
-    
-def gen_chatGPT_opinion(openai_api_bearer_token,\
-            opinions_path=config.loc['iphone6_ChatGPT_opinion'][0],\
+
+def get_chatGPT_opinion(openai_api_bearer_token,\
+            opinions_path=config.loc['ChatGPT_opinion'][0],\
             start_from_scratch=True,\
-            dataset_path=config.loc['iphone6_data_post_etl_and_featureEng'][0],\
+            dataset_path=config.loc['data_postETL_and_featureEng'][0],\
             exact_search_term='iphone 6'):
     '''
     input: openai bearer token, opinion path, dataset path, and boolean to 
@@ -67,7 +68,7 @@ def gen_chatGPT_opinion(openai_api_bearer_token,\
     chatGPT_opinions=pd.read_csv(opinions_path,index_col=0)
     if start_from_scratch:
         chatGPT_opinions=gt.make_dataframe_empty(chatGPT_opinions)
-    for i in range(chatGPT_opinions.shape[0],dataset.shape[0]):
+    for i in tqdm(range(chatGPT_opinions.shape[0],dataset.shape[0])):
         start = time.time()
         tweet=dataset.loc[i].text
         completion = openai.ChatCompletion.create(
@@ -88,4 +89,13 @@ def gen_chatGPT_opinion(openai_api_bearer_token,\
                 opinions_path)
     pd.DataFrame(chatGPT_opinions).to_csv(\
             opinions_path)
-    
+
+def combine_repo_with_chatGPT_opinion(path_to_repo=config.loc['data_postETL_and_featureEng'][0],\
+        path_to_chatGPT_opnion=config.loc['ChatGPT_opinion'][0],\
+        path_to_combined_file=config.loc['data_ETL_and_chatGPT'][0]):
+        dataset=pd.read_csv(path_to_repo,index_col=0)
+        chatGPT_response_collection=pd.read_csv(path_to_chatGPT_opnion,index_col=0)
+        new_columns=dataset.columns.to_list()+['chatGPT_opinion']
+        dataset_with_GPT_opinion=pd.concat([dataset,chatGPT_response_collection['chatGPT_opinion']],axis=1,ignore_index=True)
+        dataset_with_GPT_opinion.columns=new_columns
+        dataset_with_GPT_opinion.to_csv(path_to_combined_file)

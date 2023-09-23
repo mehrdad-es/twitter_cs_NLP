@@ -5,10 +5,12 @@ import string
 import contractions
 import unicodedata
 import sklearn as sk
+import sys
+import utils.general_tools as gt
+import utils.setConfig as sc
+config = pd.read_csv(f'../../bucket/config/{sc.select_data_folder()}',index_col=0)
 
-config = pd.read_csv('../bucket/config/config.csv',index_col=0)
-
-def perform_etl(file_path=config.loc['iphone6_tweets_repository'][0]):
+def perform_etl(file_path=config.loc['tweets_repository'][0]):
     '''
     input:file path
     output: etl dataframe
@@ -49,11 +51,11 @@ def feature_addition(etl_data):
         count_values[etl_data.loc[i,'id']]-=1
     return etl_data
 
-def save_post_etl_and_featureEng(data_post_etl_and_featureEng,save_path=config.loc['iphone6_data_post_etl_and_featureEng'][0]):
+def save_post_etl_and_featureEng(data_postETL_and_featureEng,save_path=config.loc['data_postETL_and_featureEng'][0]):
     '''
     input: dataframe with etl and feature engineering and save_path
     
     saves input dataframe to save_path location
     '''
     
-    data_post_etl_and_featureEng.to_csv(save_path,index=False)
+    data_postETL_and_featureEng.to_csv(save_path)

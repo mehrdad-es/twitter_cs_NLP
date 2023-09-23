@@ -2,10 +2,13 @@ import pandas as pd
 import great_expectations as ge
 import seaborn as sns
 import sys
+from tqdm import tqdm
+import utils.general_tools as gt
+import utils.setConfig as sc
+config = pd.read_csv(f'../../bucket/config/{sc.select_data_folder()}',index_col=0)
 
-config = pd.read_csv('../bucket/config/config.csv',index_col=0)
 
-def check_data_post_etl_and_featureEng(file_location=config.loc['iphone6_data_post_etl_and_featureEng'][0]):
+def check_data_postETL_and_featureEng(file_location=config.loc['data_postETL_and_featureEng'][0]):
     '''
     input:dataset location
     output: boolean if all the tests have passed
@@ -40,7 +43,7 @@ def check_embeddings_dataset(file_location):
           multi_column_type_validation
     return meets_criteria
 
-def check_chatGPT_opinion(file_location=config.loc['iphone6_ChatGPT_opinion'][0]):
+def check_chatGPT_opinion(file_location=config.loc['ChatGPT_opinion'][0]):
     '''
     input: chatgpt opinion dataset location
     output: boolean if all the tests have passed

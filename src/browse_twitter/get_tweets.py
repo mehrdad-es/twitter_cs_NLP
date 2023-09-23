@@ -12,8 +12,10 @@ import pandas as pd
 import datetime as dt
 import calendar as cl
 import utils.general_tools as gt
-import utils.setConfig as setConfig
+import utils.setConfig as sc
 import re
+
+config= pd.read_csv(f'../../bucket/config/{sc.select_data_folder()}',index_col=0)
 
 def initiate_chrome(use_existing_profile=False,headless=False):
     '''
@@ -88,7 +90,6 @@ def find_tweets(driver,date,exact_search_term='iphone 6',threshold=20,num_days=1
 
     # variable initialization
     months=['Jan ','Feb ','Mar ','Apr ','May ','Jun ','Jul ','Aug ','Sep ','Oct ','Nov ','Dec ']
-    config= pd.read_csv(f'../../bucket/config/{setConfig.select_data_folder()}',index_col=0)
     phone_model,date=exact_search_term,gt.analyze_date_string(date)
     day_after = date+dt.timedelta(days=num_days)
     year,month,day=date.year,date.month,date.day
