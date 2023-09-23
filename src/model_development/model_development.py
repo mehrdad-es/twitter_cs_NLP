@@ -23,10 +23,12 @@ from tqdm import tqdm
 from xgboost import XGBClassifier
 from sklearn.preprocessing import LabelEncoder
 import pickle
+import sys
+import utils.general_tools as gt
+import utils.setConfig as sc
+config = pd.read_csv(f'../../bucket/config/{sc.select_data_folder()}',index_col=0)
 
-config =pd.read_csv('../bucket/config/config.csv',index_col=0)
-
-def create_data_split(dataset_path=config.loc['iphone6_data_post_etl_and_featureEng'][0],\
+def create_data_split(dataset_path=config.loc['data_postETL_and_featureEng'][0],\
                     to_save=False,\
                     split_index_tuple=(.1,.9)):
     '''
@@ -51,12 +53,12 @@ def create_data_split(dataset_path=config.loc['iphone6_data_post_etl_and_feature
     y_train_labled,y_train_unlabled,y_test=np.split(label,\
         [int(split_index_tuple[0]*n), int(split_index_tuple[1]*n)])
     if to_save:
-        x_train_unlabled.to_csv(config.loc['iphone6_x_train_unlabled'][0])
-        x_train_labled.to_csv(config.loc['iphone6_x_train_labled'][0])
-        x_test.to_csv(config.loc['iphone6_x_test'][0])
-        y_train_unlabled.to_csv(config.loc['iphone6_y_train_unlabled'][0])
-        y_train_labled.to_csv(config.loc['iphone6_y_train_labled'][0])
-        y_test.to_csv(config.loc['iphone6_y_test'][0])
+        x_train_unlabled.to_csv(config.loc['x_train_unlabled'][0])
+        x_train_labled.to_csv(config.loc['x_train_labled'][0])
+        x_test.to_csv(config.loc['x_test'][0])
+        y_train_unlabled.to_csv(config.loc['y_train_unlabled'][0])
+        y_train_labled.to_csv(config.loc['y_train_labled'][0])
+        y_test.to_csv(config.loc['y_test'][0])
 
     return [(x_train_labled,x_train_unlabled,x_test),\
             (y_train_labled,y_train_unlabled,y_test)]
