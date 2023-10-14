@@ -10,3 +10,4 @@ __pycache__/
 tw_profile/
 miscellaneous/
 .pytest_cahce/
+src/flask_app
